@@ -29,19 +29,19 @@ import Foundation
 public class OAuth2CodeGrant: OAuth2
 {
 	/** The URL string where we can exchange a code for a token; if nil `authURL` will be used. */
-	public let tokenURL: NSURL?
+    public let tokenURL: NSURL?
 	
 	/** The receiver's long-time refresh token. */
 	public var refreshToken = ""
 	
 	public override init(settings: OAuth2JSON) {
-		if let token = settings["token_uri"] as? String {
-			tokenURL = NSURL(string: token)
-		}
-		else {
-			tokenURL = nil
-		}
-		
+        if let token = settings["token_uri"] as? String {
+            tokenURL = NSURL(string: token)
+        }
+        else {
+            tokenURL = nil
+        }
+        
 		super.init(settings: settings)
 	}
 	
@@ -50,37 +50,119 @@ public class OAuth2CodeGrant: OAuth2
 		return authorizeURL(authURL!, redirect: redirect, scope: scope, responseType: "code", params: params)
 	}
 	
-	public func tokenURLWithRedirect(redirect: String?, code: String, params: [String: String]?) -> NSURL {
-		let base = tokenURL ?? authURL!
-		var urlParams = params ?? [String: String]()
-		urlParams["code"] = code
-		urlParams["grant_type"] = "authorization_code"
-		if nil != clientSecret {
-			urlParams["client_secret"] = clientSecret!
-		}
-		
-		return authorizeURL(base, redirect: redirect, scope: nil, responseType: nil, params: urlParams)
-	}
-	
-	/**
-		Create a request for token exchange
-	 */
-	public func tokenRequest(code: String) -> NSURLRequest {
-		let url = tokenURLWithRedirect(redirect, code: code, params: nil)
-		let comp = NSURLComponents(URL: url, resolvingAgainstBaseURL: true)
-		assert(comp != nil, "It seems NSURLComponents cannot parse \(url)");
-		let body = comp!.query
-		comp!.query = nil
-		
-		let post = NSMutableURLRequest(URL: comp!.URL!)
-		post.HTTPMethod = "POST"
-		post.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
-		post.setValue("application/json", forHTTPHeaderField: "Accept")
-		post.HTTPBody = body?.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: true)
-		
-		return post
-	}
-	
+    public func tokenURLWithRedirect(redirect: String?, code: String, params: [String: String]?) -> NSURL {
+        let base = tokenURL ?? authURL!
+        var urlParams = params ?? [String: String]()
+        urlParams["code"] = code
+        urlParams["grant_type"] = "authorization_code"
+        if nil != clientSecret {
+            urlParams["client_secret"] = clientSecret!
+        }
+        
+        return authorizeURL(base, redirect: redirect, scope: nil, responseType: nil, params: urlParams)
+    }
+    
+    /**
+    Create a request for token exchange
+    */
+    public func tokenRequest(code: String) -> NSURLRequest {
+        let url = tokenURLWithRedirect(redirect, code: code, params: nil)
+        let comp = NSURLComponents(URL: url, resolvingAgainstBaseURL: true)
+        assert(comp != nil, "It seems NSURLComponents cannot parse \(url)");
+        let body = comp!.query
+        comp!.query = nil
+        
+        let post = NSMutableURLRequest(URL: comp!.URL!)
+        post.HTTPMethod = "POST"
+        post.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        post.setValue("application/json", forHTTPHeaderField: "Accept")
+        post.HTTPBody = body?.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: true)
+        
+        return post
+    }
+    
+    func refreshTokenURLWithRedirect(redirect: String?, code: String, params: [String: String]?) -> NSURL {
+        let base = tokenURL ?? authURL!
+        var urlParams = params ?? [String: String]()
+        urlParams["refresh_token"] = refreshToken
+        urlParams["grant_type"] = "refresh_token"
+        urlParams["client_id"] = clientId
+        if let clientSecret = clientSecret {
+            urlParams["client_secret"] = clientSecret
+        }
+        if let scope = scope {
+            urlParams["scope"] = scope
+        }
+        
+        return authorizeURL(base, redirect: redirect, scope: nil, responseType: nil, params: urlParams)
+    }
+    
+    /**
+    Create a request for token exchange
+    */
+    func refreshTokenRequest() -> NSURLRequest {
+        let url = refreshTokenURLWithRedirect(redirect, code: refreshToken, params: nil)
+        let comp = NSURLComponents(URL: url, resolvingAgainstBaseURL: true)
+        assert(comp != nil, "It seems NSURLComponents cannot parse \(url)");
+        let body = comp!.query
+        comp!.query = nil
+        
+        let post = NSMutableURLRequest(URL: comp!.URL!)
+        post.HTTPMethod = "POST"
+        post.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        post.setValue("application/json", forHTTPHeaderField: "Accept")
+        post.HTTPBody = body?.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: true)
+        
+        return post
+    }
+    
+    /**
+        Refresh the access token if a refresh token is available.
+     */
+    public func refreshAuthorizationToken() {
+        // do we have a code?
+        if (refreshToken.isEmpty) {
+            didFail(genOAuth2Error("I don't have a refresh code to exchange, let the user authorize first", .PrerequisiteFailed))
+            logIfVerbose("No code to exchange for a token, cannot continue")
+            return;
+        }
+        
+        let post = refreshTokenRequest()
+        logIfVerbose("Exchanging code \(refreshToken) with redirect \(redirect!) for token at \(post.URL?.description)")
+        
+        // perform the exchange
+        let session = NSURLSession.sharedSession()
+        let task = session.dataTaskWithRequest(post) { sessData, sessResponse, error in
+            var finalError: NSError?
+            
+            if nil != error {
+                finalError = error
+            }
+            else if let data = sessData, let http = sessResponse as? NSHTTPURLResponse {
+                if let json = self.parseTokenExchangeResponse(data, error: &finalError) {
+                    if 200 == http.statusCode {
+                        self.logIfVerbose("Did receive access token: \(self.accessToken), refresh token: \(self.refreshToken)")
+                        self.didAuthorize(json)
+                        return
+                    }
+                    
+                    let desc = (json["error_description"] ?? json["error"]) as? String
+                    finalError = genOAuth2Error(desc ?? http.statusString, .AuthorizationError)
+                }
+            }
+            
+            // if we're still here an error must have happened
+            if nil == finalError {
+                finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", .NetworkError)
+            }
+            
+            self.didFail(finalError)
+        }
+        task.resume()
+
+    }
+    
+    
 	/**
 		Extracts the code from the redirect URL and exchanges it for a token.
 	 */
