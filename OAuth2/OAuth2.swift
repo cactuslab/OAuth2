@@ -169,7 +169,7 @@ public class OAuth2
 		                     the query part
 		:returns: NSURL to be used to start the OAuth dance
 	 */
-	public func authorizeURL(base: NSURL, var redirect: String?, scope: String?, responseType: String?, params: [String: String]?) -> NSURL {
+	public func authorizeURL(base: NSURL, redirect: String?, scope: String?, responseType: String?, params: [String: String]?) -> NSURL {
 		
 		// verify that we have all parts
 		if clientId.isEmpty {
@@ -190,7 +190,7 @@ public class OAuth2
 		
 		if state.isEmpty {
 			state = NSUUID().UUIDString
-			state = state[state.startIndex..<advance(state.startIndex, 8)]		// only use the first 8 chars, should be enough
+			state = state[state.startIndex..<state.startIndex.advancedBy(8)]		// only use the first 8 chars, should be enough
 		}
 		
 		
@@ -284,17 +284,18 @@ public class OAuth2
 		for (key, val) in params {
 			arr.append("\(key)=\(val)")						// NSURLComponents will correctly encode the parameter string
 		}
-		return "&".join(arr)
+		return arr.joinWithSeparator("&")
 	}
 	
 	/**
 		Parse a query string into a dictionary of String: String pairs.
 	 */
 	public class func paramsFromQuery(query: String) -> [String: String] {
-		let parts = split(query, maxSplit: .max, allowEmptySlices: false) { $0 == "&" }
+        
+		let parts = query.componentsSeparatedByString("&")
 		var params = [String: String](minimumCapacity: parts.count)
 		for part in parts {
-			let subparts = split(part, maxSplit: .max, allowEmptySlices: false) { $0 == "=" }
+			let subparts = part.componentsSeparatedByString("=")
 			if 2 == subparts.count {
 				params[subparts[0]] = subparts[1]
 			}
@@ -357,7 +358,7 @@ public class OAuth2
 	 */
 	func logIfVerbose(log: String) {
 		if verbose {
-			println("OAuth2: \(log)")
+			print("OAuth2: \(log)")
 		}
 	}
 }
@@ -376,7 +377,7 @@ func callOnMainThread(callback: (Void -> Void)) {
 }
 
 public func genOAuth2Error(message: String) -> NSError {
-	return genOAuth2Error(message, .Generic)
+    return genOAuth2Error(message, code: .Generic)
 }
 
 public func genOAuth2Error(message: String, code: OAuth2Error) -> NSError {

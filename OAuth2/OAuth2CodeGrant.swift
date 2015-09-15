@@ -122,7 +122,7 @@ public class OAuth2CodeGrant: OAuth2
     public func refreshAuthorizationToken() {
         // do we have a code?
         if (refreshToken.isEmpty) {
-            didFail(genOAuth2Error("I don't have a refresh code to exchange, let the user authorize first", .PrerequisiteFailed))
+            didFail(genOAuth2Error("I don't have a refresh code to exchange, let the user authorize first", code: .PrerequisiteFailed))
             logIfVerbose("No code to exchange for a token, cannot continue")
             return;
         }
@@ -147,13 +147,13 @@ public class OAuth2CodeGrant: OAuth2
                     }
                     
                     let desc = (json["error_description"] ?? json["error"]) as? String
-                    finalError = genOAuth2Error(desc ?? http.statusString, .AuthorizationError)
+                    finalError = genOAuth2Error(desc ?? http.statusString, code: .AuthorizationError)
                 }
             }
             
             // if we're still here an error must have happened
             if nil == finalError {
-                finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", .NetworkError)
+                finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", code: .NetworkError)
             }
             
             self.didFail(finalError)
@@ -185,7 +185,7 @@ public class OAuth2CodeGrant: OAuth2
 		
 		// do we have a code?
 		if (code.isEmpty) {
-			didFail(genOAuth2Error("I don't have a code to exchange, let the user authorize first", .PrerequisiteFailed))
+			didFail(genOAuth2Error("I don't have a code to exchange, let the user authorize first", code: .PrerequisiteFailed))
 			logIfVerbose("No code to exchange for a token, cannot continue")
 			return;
 		}
@@ -210,13 +210,13 @@ public class OAuth2CodeGrant: OAuth2
 					}
 					
 					let desc = (json["error_description"] ?? json["error"]) as? String
-					finalError = genOAuth2Error(desc ?? http.statusString, .AuthorizationError)
+					finalError = genOAuth2Error(desc ?? http.statusString, code: .AuthorizationError)
 				}
 			}
 			
 			// if we're still here an error must have happened
 			if nil == finalError {
-				finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", .NetworkError)
+				finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", code: .NetworkError)
 			}
 			
 			self.didFail(finalError)
@@ -230,20 +230,24 @@ public class OAuth2CodeGrant: OAuth2
 		:returns: A OAuth2JSON, which is usually returned upon token exchange and may contain additional information
 	 */
 	func parseTokenExchangeResponse(data: NSData, error: NSErrorPointer) -> OAuth2JSON? {
-		if let json = NSJSONSerialization.JSONObjectWithData(data, options: nil, error: error) as? OAuth2JSON {
-			if let access = json["access_token"] as? String {
-				accessToken = access
-			}
-			accessTokenExpiry = nil
-			if let expires = json["expires_in"] as? NSTimeInterval {
-				accessTokenExpiry = NSDate(timeIntervalSinceNow: expires)
-			}
-			if let refresh = json["refresh_token"] as? String {
-				refreshToken = refresh
-			}
-			
-			return json
-		}
+        do {
+            if let json = try NSJSONSerialization.JSONObjectWithData(data, options: .MutableLeaves) as? OAuth2JSON {
+                if let access = json["access_token"] as? String {
+                    accessToken = access
+                }
+                accessTokenExpiry = nil
+                if let expires = json["expires_in"] as? NSTimeInterval {
+                    accessTokenExpiry = NSDate(timeIntervalSinceNow: expires)
+                }
+                if let refresh = json["refresh_token"] as? String {
+                    refreshToken = refresh
+                }
+                
+                return json
+            }
+        } catch {
+            // Nothings
+        }
 		return nil
 	}
 	
@@ -258,7 +262,7 @@ public class OAuth2CodeGrant: OAuth2
 		var error: NSError?
 		
 		let comp = NSURLComponents(URL: redirect, resolvingAgainstBaseURL: true)
-		if let compQuery = comp?.query where count(compQuery) > 0 {
+		if let compQuery = comp?.query where compQuery.characters.count > 0 {
 			let query = OAuth2CodeGrant.paramsFromQuery(comp!.query!)
 			if let cd = query["code"] {
 				
@@ -268,7 +272,7 @@ public class OAuth2CodeGrant: OAuth2
 					state = ""
 				}
 				else {
-					error = genOAuth2Error("Invalid state, will not use the code", .InvalidState)
+					error = genOAuth2Error("Invalid state, will not use the code", code: .InvalidState)
 				}
 			}
 			else {
@@ -276,7 +280,7 @@ public class OAuth2CodeGrant: OAuth2
 			}
 		}
 		else {
-			error = genOAuth2Error("The redirect URL contains no query fragment", .PrerequisiteFailed)
+			error = genOAuth2Error("The redirect URL contains no query fragment", code: .PrerequisiteFailed)
 		}
 		
 		if nil != error {

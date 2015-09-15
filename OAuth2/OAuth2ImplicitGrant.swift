@@ -34,12 +34,12 @@ public class OAuth2ImplicitGrant: OAuth2
 		logIfVerbose("Handling redirect URL \(redirect.description)")
 		
 		var error: NSError?
-		var comp = NSURLComponents(URL: redirect, resolvingAgainstBaseURL: true)
+		let comp = NSURLComponents(URL: redirect, resolvingAgainstBaseURL: true)
 		
 		// token should be in the URL fragment
-		if let fragment = comp?.fragment where count(fragment) > 0 {
+		if let fragment = comp?.fragment where fragment.characters.count > 0 {
 			let params = OAuth2ImplicitGrant.paramsFromQuery(fragment)
-			if let token = params["access_token"] where count(token) > 0 {
+			if let token = params["access_token"] where token.characters.count > 0 {
 				if let tokType = params["token_type"] {
 					if "bearer" == tokType.lowercaseString {
 						
@@ -48,7 +48,7 @@ public class OAuth2ImplicitGrant: OAuth2
 							if tokState == state {
 								accessToken = token
 								accessTokenExpiry = nil
-								if let expires = params["expires_in"]?.toInt() {
+                                if let expiresValue = params["expires_in"], expires = Int(expiresValue) {
 									accessTokenExpiry = NSDate(timeIntervalSinceNow: NSTimeInterval(expires))
 								}
 								logIfVerbose("Successfully extracted access token \(token)")
@@ -56,18 +56,18 @@ public class OAuth2ImplicitGrant: OAuth2
 								return
 							}
 							
-							error = genOAuth2Error("Invalid state \(tokState), will not use the token", .InvalidState)
+							error = genOAuth2Error("Invalid state \(tokState), will not use the token", code: .InvalidState)
 						}
 						else {
-							error = genOAuth2Error("No state returned, will not use the token", .InvalidState)
+							error = genOAuth2Error("No state returned, will not use the token", code: .InvalidState)
 						}
 					}
 					else {
-						error = genOAuth2Error("Only \"bearer\" token is supported, but received \"\(tokType)\"", .Unsupported)
+						error = genOAuth2Error("Only \"bearer\" token is supported, but received \"\(tokType)\"", code: .Unsupported)
 					}
 				}
 				else {
-					error = genOAuth2Error("No token type received, will not use the token", .PrerequisiteFailed)
+					error = genOAuth2Error("No token type received, will not use the token", code: .PrerequisiteFailed)
 				}
 			}
 			else {
@@ -75,7 +75,7 @@ public class OAuth2ImplicitGrant: OAuth2
 			}
 		}
 		else {
-			error = genOAuth2Error("Invalid redirect URL: \(redirect)", .PrerequisiteFailed)
+			error = genOAuth2Error("Invalid redirect URL: \(redirect)", code: .PrerequisiteFailed)
 		}
 		
 		// log, if needed, then report back
