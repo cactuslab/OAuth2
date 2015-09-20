@@ -126,7 +126,7 @@ class OAuth2WebViewDelegate: NSObject, UIWebViewDelegate {
                     interceptComponents = NSURLComponents(URL: url, resolvingAgainstBaseURL: true)
                 }
                 else {
-                    println("Failed to parse URL \(interceptURLString), discarding")
+                    print("Failed to parse URL \(interceptURLString), discarding")
                     interceptURLString = nil
                 }
             }
@@ -159,8 +159,8 @@ class OAuth2WebViewDelegate: NSObject, UIWebViewDelegate {
         return true
     }
     
-    func webView(webView: UIWebView, didFailLoadWithError error: NSError) {
-        if NSURLErrorDomain == error.domain && NSURLErrorCancelled == error.code {
+    func webView(webView: UIWebView, didFailLoadWithError error: NSError?) {
+        if let error = error where NSURLErrorDomain == error.domain && NSURLErrorCancelled == error.code {
             return
         }
     }
@@ -193,7 +193,7 @@ public class OAuth2WebViewController: UIViewController
         super.init(nibName: nil, bundle: nil)
     }
     
-    required public init(coder aDecoder: NSCoder) {
+    required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
     }
     
@@ -213,14 +213,14 @@ public class OAuth2WebViewController: UIViewController
         
         // create a web view
         webView = UIWebView()
-        webView.setTranslatesAutoresizingMaskIntoConstraints(false)
+//        webView.setTranslatesAutoresizingMaskIntoConstraints(false)
         webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal
         webView.delegate = delegate
         
         view.addSubview(webView!)
-        let views:[NSObject : AnyObject] = ["web": webView!]
-        view.addConstraints(NSLayoutConstraint.constraintsWithVisualFormat("H:|[web]|", options: nil, metrics: nil, views: views))
-        view.addConstraints(NSLayoutConstraint.constraintsWithVisualFormat("V:|[web]|", options: nil, metrics: nil, views: views))
+        let views:[String : AnyObject] = ["web": webView!]
+        view.addConstraints(NSLayoutConstraint.constraintsWithVisualFormat("H:|[web]|", options: [], metrics: nil, views: views))
+        view.addConstraints(NSLayoutConstraint.constraintsWithVisualFormat("V:|[web]|", options: [], metrics: nil, views: views))
     }
     
     override public func viewWillAppear(animated: Bool) {
@@ -245,7 +245,7 @@ public class OAuth2WebViewController: UIViewController
     }
     
     func showErrorMessage(message: String, animated: Bool) {
-        println("Error: \(message)")
+        print("Error: \(message)")
     }
     
     
@@ -260,14 +260,14 @@ public class OAuth2WebViewController: UIViewController
     }
     
     func cancel(sender: AnyObject?) {
-        dismiss(asCancel: true, animated: nil != sender ? true : false)
+        dismiss(true, animated: nil != sender ? true : false)
     }
     
-    func dismiss(# animated: Bool) {
-        dismiss(asCancel: false, animated: animated)
+    func dismiss(animated: Bool) {
+        dismiss(false, animated: animated)
     }
     
-    func dismiss(# asCancel: Bool, animated: Bool) {
+    func dismiss(asCancel: Bool, animated: Bool) {
         webView.stopLoading()
         
         delegate?.onWillDismiss?(didCancel: asCancel)
