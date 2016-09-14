@@ -208,7 +208,7 @@ public class OAuth2WebViewController: UIViewController
         super.loadView()
         view.backgroundColor = UIColor.whiteColor()
         
-        cancelButton = UIBarButtonItem(barButtonSystemItem: .Cancel, target: self, action: "cancel:")
+        cancelButton = UIBarButtonItem(barButtonSystemItem: .Cancel, target: self, action: #selector(OAuth2WebViewController.cancel(_:)))
         navigationItem.rightBarButtonItem = cancelButton
         
         // create a web view
