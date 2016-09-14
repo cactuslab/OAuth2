@@ -159,8 +159,8 @@ class OAuth2WebViewDelegate: NSObject, UIWebViewDelegate {
         return true
     }
     
-    func webView(webView: UIWebView, didFailLoadWithError error: NSError?) {
-        if let error = error where NSURLErrorDomain == error.domain && NSURLErrorCancelled == error.code {
+    func webView(webView: UIWebView, didFailLoadWithError error: NSError) {
+        if NSURLErrorDomain == error.domain && NSURLErrorCancelled == error.code {
             return
         }
     }
