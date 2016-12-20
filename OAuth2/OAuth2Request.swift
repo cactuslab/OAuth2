@@ -24,14 +24,14 @@ import Foundation
 /**
  *  A request that can be signed by an OAuth2 instance.
  */
-public class OAuth2Request: NSMutableURLRequest
+open class OAuth2Request: NSMutableURLRequest
 {
-	convenience init(URL: NSURL!, oauth: OAuth2, cachePolicy: NSURLRequestCachePolicy, timeoutInterval: NSTimeInterval) {
-		self.init(URL: URL, cachePolicy: cachePolicy, timeoutInterval: timeoutInterval)
+	convenience init(URL: Foundation.URL!, oauth: OAuth2, cachePolicy: NSURLRequest.CachePolicy, timeoutInterval: TimeInterval) {
+		self.init(url: URL, cachePolicy: cachePolicy, timeoutInterval: timeoutInterval)
 		self.sign(oauth)
 	}
 	
-	func sign(oauth: OAuth2) {
+	func sign(_ oauth: OAuth2) {
 		if oauth.accessToken.isEmpty {
 			fatalError("Cannot sign the request with an empty access token")
 		}

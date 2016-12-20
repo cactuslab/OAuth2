@@ -24,58 +24,58 @@ import Foundation
 /**
  *  Class to handle OAuth2 requests for public clients, such as distributed Mac/iOS Apps.
  */
-public class OAuth2ImplicitGrant: OAuth2
+open class OAuth2ImplicitGrant: OAuth2
 {
-	override public func authorizeURLWithRedirect(redirect: String?, scope: String?, params: [String: String]?) -> NSURL {
+	override open func authorizeURLWithRedirect(_ redirect: String?, scope: String?, params: [String: String]?) -> URL {
 		return authorizeURL(authURL!, redirect: redirect, scope: scope, responseType: "token", params: params)
 	}
 	
-	override public func handleRedirectURL(redirect: NSURL) {
+	override open func handleRedirectURL(_ redirect: URL) {
 		logIfVerbose("Handling redirect URL \(redirect.description)")
 		
 		var error: NSError?
-		let comp = NSURLComponents(URL: redirect, resolvingAgainstBaseURL: true)
+		let comp = URLComponents(url: redirect, resolvingAgainstBaseURL: true)
 		
 		// token should be in the URL fragment
-		if let fragment = comp?.fragment where fragment.characters.count > 0 {
+		if let fragment = comp?.fragment, fragment.characters.count > 0 {
 			let params = OAuth2ImplicitGrant.paramsFromQuery(fragment)
-			if let token = params["access_token"] where token.characters.count > 0 {
+			if let token = params["access_token"], token.characters.count > 0 {
 				if let tokType = params["token_type"] {
-					if "bearer" == tokType.lowercaseString {
+					if "bearer" == tokType.lowercased() {
 						
 						// got a "bearer" token, use it if state checks out
 						if let tokState = params["state"] {
 							if tokState == state {
 								accessToken = token
 								accessTokenExpiry = nil
-                                if let expiresValue = params["expires_in"], expires = Int(expiresValue) {
-									accessTokenExpiry = NSDate(timeIntervalSinceNow: NSTimeInterval(expires))
+                                if let expiresValue = params["expires_in"], let expires = Int(expiresValue) {
+									accessTokenExpiry = Date(timeIntervalSinceNow: TimeInterval(expires))
 								}
 								logIfVerbose("Successfully extracted access token \(token)")
-								didAuthorize(params)
+								didAuthorize(params as OAuth2JSON)
 								return
 							}
 							
-							error = genOAuth2Error("Invalid state \(tokState), will not use the token", code: .InvalidState)
+							error = genOAuth2Error("Invalid state \(tokState), will not use the token", code: .invalidState)
 						}
 						else {
-							error = genOAuth2Error("No state returned, will not use the token", code: .InvalidState)
+							error = genOAuth2Error("No state returned, will not use the token", code: .invalidState)
 						}
 					}
 					else {
-						error = genOAuth2Error("Only \"bearer\" token is supported, but received \"\(tokType)\"", code: .Unsupported)
+						error = genOAuth2Error("Only \"bearer\" token is supported, but received \"\(tokType)\"", code: .unsupported)
 					}
 				}
 				else {
-					error = genOAuth2Error("No token type received, will not use the token", code: .PrerequisiteFailed)
+					error = genOAuth2Error("No token type received, will not use the token", code: .prerequisiteFailed)
 				}
 			}
 			else {
-				error = OAuth2ImplicitGrant.errorForAccessTokenErrorResponse(params)
+				error = OAuth2ImplicitGrant.errorForAccessTokenErrorResponse(params as OAuth2JSON)
 			}
 		}
 		else {
-			error = genOAuth2Error("Invalid redirect URL: \(redirect)", code: .PrerequisiteFailed)
+			error = genOAuth2Error("Invalid redirect URL: \(redirect)", code: .prerequisiteFailed)
 		}
 		
 		// log, if needed, then report back

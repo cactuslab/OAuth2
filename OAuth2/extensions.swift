@@ -21,10 +21,10 @@
 import Foundation
 
 
-extension NSHTTPURLResponse {
+extension HTTPURLResponse {
 	public var statusString: String {
 		get {
-			return NSHTTPURLResponse.localizedStringForStatusCode(self.statusCode)
+			return HTTPURLResponse.localizedString(forStatusCode: self.statusCode)
 		}
 	}
 }

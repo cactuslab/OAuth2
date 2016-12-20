@@ -26,17 +26,17 @@ import Foundation
  *
  *  This auth flow is designed for clients that are capable of protecting their client secret, which a distributed Mac/iOS App **is not**!
  */
-public class OAuth2CodeGrant: OAuth2
+open class OAuth2CodeGrant: OAuth2
 {
 	/** The URL string where we can exchange a code for a token; if nil `authURL` will be used. */
-    public let tokenURL: NSURL?
+    open let tokenURL: URL?
 	
 	/** The receiver's long-time refresh token. */
-	public var refreshToken = ""
+	open var refreshToken = ""
 	
 	public override init(settings: OAuth2JSON) {
         if let token = settings["token_uri"] as? String {
-            tokenURL = NSURL(string: token)
+            tokenURL = URL(string: token)
         }
         else {
             tokenURL = nil
@@ -46,12 +46,12 @@ public class OAuth2CodeGrant: OAuth2
 	}
 	
 	
-	override public func authorizeURLWithRedirect(redirect: String?, scope: String?, params: [String: String]?) -> NSURL {
+	override open func authorizeURLWithRedirect(_ redirect: String?, scope: String?, params: [String: String]?) -> URL {
 		return authorizeURL(authURL!, redirect: redirect, scope: scope, responseType: "code", params: params)
 	}
 	
-    public func tokenURLWithRedirect(redirect: String?, code: String, params: [String: String]?) -> NSURL {
-        let base = tokenURL ?? authURL!
+    open func tokenURLWithRedirect(_ redirect: String?, code: String, params: [String: String]?) -> URL {
+        let base = tokenURL ?? authURL! as URL
         var urlParams = params ?? [String: String]()
         urlParams["code"] = code
         urlParams["grant_type"] = "authorization_code"
@@ -65,24 +65,24 @@ public class OAuth2CodeGrant: OAuth2
     /**
     Create a request for token exchange
     */
-    public func tokenRequest(code: String) -> NSURLRequest {
+    open func tokenRequest(_ code: String) -> URLRequest {
         let url = tokenURLWithRedirect(redirect, code: code, params: nil)
-        let comp = NSURLComponents(URL: url, resolvingAgainstBaseURL: true)
+        var comp = URLComponents(url: url, resolvingAgainstBaseURL: true)
         assert(comp != nil, "It seems NSURLComponents cannot parse \(url)");
         let body = comp!.query
         comp!.query = nil
         
-        let post = NSMutableURLRequest(URL: comp!.URL!)
-        post.HTTPMethod = "POST"
+        let post = NSMutableURLRequest(url: comp!.url!)
+        post.httpMethod = "POST"
         post.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
         post.setValue("application/json", forHTTPHeaderField: "Accept")
-        post.HTTPBody = body?.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: true)
+        post.httpBody = body?.data(using: String.Encoding.utf8, allowLossyConversion: true)
         
-        return post
+        return post as URLRequest
     }
     
-    func refreshTokenURLWithRedirect(redirect: String?, code: String, params: [String: String]?) -> NSURL {
-        let base = tokenURL ?? authURL!
+    func refreshTokenURLWithRedirect(_ redirect: String?, code: String, params: [String: String]?) -> URL {
+        let base = tokenURL ?? authURL! as URL
         var urlParams = params ?? [String: String]()
         urlParams["refresh_token"] = refreshToken
         urlParams["grant_type"] = "refresh_token"
@@ -100,45 +100,45 @@ public class OAuth2CodeGrant: OAuth2
     /**
     Create a request for token exchange
     */
-    func refreshTokenRequest() -> NSURLRequest {
+    func refreshTokenRequest() -> URLRequest {
         let url = refreshTokenURLWithRedirect(redirect, code: refreshToken, params: nil)
-        let comp = NSURLComponents(URL: url, resolvingAgainstBaseURL: true)
+        var comp = URLComponents(url: url, resolvingAgainstBaseURL: true)
         assert(comp != nil, "It seems NSURLComponents cannot parse \(url)");
         let body = comp!.query
         comp!.query = nil
         
-        let post = NSMutableURLRequest(URL: comp!.URL!)
-        post.HTTPMethod = "POST"
+        let post = NSMutableURLRequest(url: comp!.url!)
+        post.httpMethod = "POST"
         post.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
         post.setValue("application/json", forHTTPHeaderField: "Accept")
-        post.HTTPBody = body?.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: true)
+        post.httpBody = body?.data(using: String.Encoding.utf8, allowLossyConversion: true)
         
-        return post
+        return post as URLRequest
     }
     
     /**
         Refresh the access token if a refresh token is available.
      */
-    public func refreshAuthorizationToken() {
+    open func refreshAuthorizationToken() {
         // do we have a code?
         if (refreshToken.isEmpty) {
-            didFail(genOAuth2Error("I don't have a refresh code to exchange, let the user authorize first", code: .PrerequisiteFailed))
+            didFail(genOAuth2Error("I don't have a refresh code to exchange, let the user authorize first", code: .prerequisiteFailed))
             logIfVerbose("No code to exchange for a token, cannot continue")
             return;
         }
         
         let post = refreshTokenRequest()
-        logIfVerbose("Exchanging code \(refreshToken) with redirect \(redirect!) for token at \(post.URL?.description)")
+        logIfVerbose("Exchanging code \(refreshToken) with redirect \(redirect!) for token at \(post.url?.description)")
         
         // perform the exchange
-        let session = NSURLSession.sharedSession()
-        let task = session.dataTaskWithRequest(post) { sessData, sessResponse, error in
+        let session = URLSession.shared
+        let task = session.dataTask(with: post, completionHandler: { sessData, sessResponse, error in
             var finalError: NSError?
             
             if nil != error {
-                finalError = error
+                finalError = error as NSError?
             }
-            else if let data = sessData, let http = sessResponse as? NSHTTPURLResponse {
+            else if let data = sessData, let http = sessResponse as? HTTPURLResponse {
                 if let json = self.parseTokenExchangeResponse(data, error: &finalError) {
                     if 200 == http.statusCode {
                         self.logIfVerbose("Did receive access token: \(self.accessToken), refresh token: \(self.refreshToken)")
@@ -147,17 +147,17 @@ public class OAuth2CodeGrant: OAuth2
                     }
                     
                     let desc = (json["error_description"] ?? json["error"]) as? String
-                    finalError = genOAuth2Error(desc ?? http.statusString, code: .AuthorizationError)
+                    finalError = genOAuth2Error(desc ?? http.statusString, code: .authorizationError)
                 }
             }
             
             // if we're still here an error must have happened
             if nil == finalError {
-                finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", code: .NetworkError)
+                finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", code: .networkError)
             }
             
             self.didFail(finalError)
-        }
+        }) 
         task.resume()
 
     }
@@ -166,7 +166,7 @@ public class OAuth2CodeGrant: OAuth2
 	/**
 		Extracts the code from the redirect URL and exchanges it for a token.
 	 */
-	override public func handleRedirectURL(redirect: NSURL) {
+	override open func handleRedirectURL(_ redirect: URL) {
 		logIfVerbose("Handling redirect URL \(redirect.description)")
 		
 		let (code, error) = validateRedirectURL(redirect)
@@ -181,27 +181,27 @@ public class OAuth2CodeGrant: OAuth2
 	/**
 		Takes the received code and exchanges it for a token.
 	 */
-	func exchangeCodeForToken(code: String) {
+	func exchangeCodeForToken(_ code: String) {
 		
 		// do we have a code?
 		if (code.isEmpty) {
-			didFail(genOAuth2Error("I don't have a code to exchange, let the user authorize first", code: .PrerequisiteFailed))
+			didFail(genOAuth2Error("I don't have a code to exchange, let the user authorize first", code: .prerequisiteFailed))
 			logIfVerbose("No code to exchange for a token, cannot continue")
 			return;
 		}
 		
 		let post = tokenRequest(code)
-		logIfVerbose("Exchanging code \(code) with redirect \(redirect!) for token at \(post.URL?.description)")
+		logIfVerbose("Exchanging code \(code) with redirect \(redirect!) for token at \(post.url?.description)")
 		
 		// perform the exchange
-		let session = NSURLSession.sharedSession()
-		let task = session.dataTaskWithRequest(post) { sessData, sessResponse, error in
+		let session = URLSession.shared
+		let task = session.dataTask(with: post, completionHandler: { sessData, sessResponse, error in
 			var finalError: NSError?
 			
 			if nil != error {
-				finalError = error
+				finalError = error as NSError?
 			}
-			else if let data = sessData, let http = sessResponse as? NSHTTPURLResponse {
+			else if let data = sessData, let http = sessResponse as? HTTPURLResponse {
 				if let json = self.parseTokenExchangeResponse(data, error: &finalError) {
 					if 200 == http.statusCode {
 						self.logIfVerbose("Did receive access token: \(self.accessToken), refresh token: \(self.refreshToken)")
@@ -210,17 +210,17 @@ public class OAuth2CodeGrant: OAuth2
 					}
 					
 					let desc = (json["error_description"] ?? json["error"]) as? String
-					finalError = genOAuth2Error(desc ?? http.statusString, code: .AuthorizationError)
+					finalError = genOAuth2Error(desc ?? http.statusString, code: .authorizationError)
 				}
 			}
 			
 			// if we're still here an error must have happened
 			if nil == finalError {
-				finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", code: .NetworkError)
+				finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", code: .networkError)
 			}
 			
 			self.didFail(finalError)
-		}
+		}) 
 		task.resume()
 	}
 	
@@ -229,15 +229,15 @@ public class OAuth2CodeGrant: OAuth2
 	
 		:returns: A OAuth2JSON, which is usually returned upon token exchange and may contain additional information
 	 */
-	func parseTokenExchangeResponse(data: NSData, error: NSErrorPointer) -> OAuth2JSON? {
+	func parseTokenExchangeResponse(_ data: Data, error: NSErrorPointer) -> OAuth2JSON? {
         do {
-            if let json = try NSJSONSerialization.JSONObjectWithData(data, options: .MutableLeaves) as? OAuth2JSON {
+            if let json = try JSONSerialization.jsonObject(with: data, options: .mutableLeaves) as? OAuth2JSON {
                 if let access = json["access_token"] as? String {
                     accessToken = access
                 }
                 accessTokenExpiry = nil
-                if let expires = json["expires_in"] as? NSTimeInterval {
-                    accessTokenExpiry = NSDate(timeIntervalSinceNow: expires)
+                if let expires = json["expires_in"] as? TimeInterval {
+                    accessTokenExpiry = Date(timeIntervalSinceNow: expires)
                 }
                 if let refresh = json["refresh_token"] as? String {
                     refreshToken = refresh
@@ -257,30 +257,30 @@ public class OAuth2CodeGrant: OAuth2
 	/**
 		Validates the redirect URI: returns a tuple with the code and nil on success, nil and an error on failure.
 	 */
-	func validateRedirectURL(redirect: NSURL) -> (code: String?, error: NSError?) {
+	func validateRedirectURL(_ redirect: URL) -> (code: String?, error: NSError?) {
 		var code: String?
 		var error: NSError?
 		
-		let comp = NSURLComponents(URL: redirect, resolvingAgainstBaseURL: true)
-		if let compQuery = comp?.query where compQuery.characters.count > 0 {
+		let comp = URLComponents(url: redirect, resolvingAgainstBaseURL: true)
+		if let compQuery = comp?.query, compQuery.characters.count > 0 {
 			let query = OAuth2CodeGrant.paramsFromQuery(comp!.query!)
 			if let cd = query["code"] {
 				
 				// we got a code, use it if state is correct (and reset state)
-				if let st = query["state"] where st == state {
+				if let st = query["state"], st == state {
 					code = cd
 					state = ""
 				}
 				else {
-					error = genOAuth2Error("Invalid state, will not use the code", code: .InvalidState)
+					error = genOAuth2Error("Invalid state, will not use the code", code: .invalidState)
 				}
 			}
 			else {
-				error = OAuth2CodeGrant.errorForAccessTokenErrorResponse(query)
+				error = OAuth2CodeGrant.errorForAccessTokenErrorResponse(query as OAuth2JSON)
 			}
 		}
 		else {
-			error = genOAuth2Error("The redirect URL contains no query fragment", code: .PrerequisiteFailed)
+			error = genOAuth2Error("The redirect URL contains no query fragment", code: .prerequisiteFailed)
 		}
 		
 		if nil != error {

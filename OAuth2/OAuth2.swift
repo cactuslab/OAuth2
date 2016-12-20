@@ -23,12 +23,12 @@ import Foundation
 let OAuth2ErrorDomain = "OAuth2ErrorDomain"
 
 public enum OAuth2Error: Int {
-	case Generic = 600
-	case Unsupported
-	case NetworkError
-	case PrerequisiteFailed
-	case InvalidState
-	case AuthorizationError
+	case generic = 600
+	case unsupported
+	case networkError
+	case prerequisiteFailed
+	case invalidState
+	case authorizationError
 }
 
 public typealias OAuth2JSON = [String: AnyObject]
@@ -37,42 +37,42 @@ public typealias OAuth2JSON = [String: AnyObject]
 /**
  *  Base class for specific OAuth2 authentication flow implementations.
  */
-public class OAuth2
+open class OAuth2
 {
 	/** Settings, as set upon initialization. */
 	let settings: OAuth2JSON
 	
 	/** The client id. */
-	public let clientId: String
+	open let clientId: String
 	
 	/** The client secret, usually only needed for code grant. */
-	public let clientSecret: String?
+	open let clientSecret: String?
 	
 	/** The URL to authorize against. */
-	public var authURL: NSURL?
+	open var authURL: URL?
 	
 	/** The scope currently in use. */
-	public var scope: String?
+	open var scope: String?
 	
 	/** The redirect URL string currently in use. */
-	public var redirect: String?
+	open var redirect: String?
 	
 	/** The state sent to the server when requesting a token.
 		We internally generate a UUID and use the first 8 chars.
 	 */
-	internal(set) public var state = ""
+	internal(set) open var state = ""
 	
 	/** The receiver's access token. */
-	public var accessToken = ""
+	open var accessToken = ""
 	
 	/** The access token's expiry date. */
-	public var accessTokenExpiry: NSDate?
+	open var accessTokenExpiry: Date?
 	
 	/** Closure called on successful authentication on the main thread. */
-	public var onAuthorize: ((parameters: OAuth2JSON) -> Void)?
+	open var onAuthorize: ((_ parameters: OAuth2JSON) -> Void)?
 	
 	/** When authorization fails (if error is not nil) or is cancelled, this block is executed on the main thread. */
-	public var onFailure: ((error: NSError?) -> Void)?
+	open var onFailure: ((_ error: NSError?) -> Void)?
 	
 	/**
 		Closure called after onAuthorize OR onFailure, on the main thread; useful for cleanup operations.
@@ -81,13 +81,13 @@ public class OAuth2
 		:param: error NSError describing the reason for failure, as supplied to the `onFailure` callback. If it is nil
 		        and wasFailure is true, the process was aborted.
 	 */
-	public var afterAuthorizeOrFailure: ((wasFailure: Bool, error: NSError?) -> Void)?
+	open var afterAuthorizeOrFailure: ((_ wasFailure: Bool, _ error: NSError?) -> Void)?
 	
 	/** An optional title that will propagate to views handled by OAuth2, such as OAuth2WebViewController. */
-	public var viewTitle: String?
+	open var viewTitle: String?
 	
 	/** Set to YES to log all the things. NO by default. */
-	public var verbose = false
+	open var verbose = false
 	
 	/**
 		Designated initializer.
@@ -122,7 +122,7 @@ public class OAuth2
 		}
 		
 		if let auth = settings["authorize_uri"] as? String {
-			authURL = NSURL(string: auth)
+			authURL = URL(string: auth)
 		}
 		if let scp = settings["scope"] as? String {
 			scope = scp
@@ -144,10 +144,10 @@ public class OAuth2
 	/** If the instance has an accessToken, checks if its expiry time has not yet passed. If we don't have an expiry
 		date we assume the token is still valid.
 	 */
-	public func hasUnexpiredAccessToken() -> Bool {
+	open func hasUnexpiredAccessToken() -> Bool {
 		if !accessToken.isEmpty {
 			if let expiry = accessTokenExpiry {
-				return expiry == expiry.laterDate(NSDate())
+				return expiry == (expiry as NSDate).laterDate(Date())
 			}
 			return true
 		}
@@ -169,11 +169,11 @@ public class OAuth2
 		                     the query part
 		:returns: NSURL to be used to start the OAuth dance
 	 */
-	public func authorizeURL(base: NSURL, redirect: String?, scope: String?, responseType: String?, params: [String: String]?) -> NSURL {
+	open func authorizeURL(_ base: URL, redirect: String?, scope: String?, responseType: String?, params: [String: String]?) -> URL {
 		
 		// verify that we have all parts
 		if clientId.isEmpty {
-			NSException(name: "OAuth2IncompleteSetup", reason: "I do not yet have a client id, cannot construct an authorize URL", userInfo: nil).raise()
+			NSException(name: NSExceptionName(rawValue: "OAuth2IncompleteSetup"), reason: "I do not yet have a client id, cannot construct an authorize URL", userInfo: nil).raise()
 		}
 		
 		if nil != redirect {
@@ -185,17 +185,17 @@ public class OAuth2
 			}
 		}
 		if nil == self.redirect {
-			NSException(name: "OAuth2IncompleteSetup", reason: "I need a redirect URI, cannot construct an authorize URL", userInfo: nil).raise()
+			NSException(name: NSExceptionName(rawValue: "OAuth2IncompleteSetup"), reason: "I need a redirect URI, cannot construct an authorize URL", userInfo: nil).raise()
 		}
 		
 		if state.isEmpty {
-			state = NSUUID().UUIDString
-			state = state[state.startIndex..<state.startIndex.advancedBy(8)]		// only use the first 8 chars, should be enough
+			state = UUID().uuidString
+			state = state[state.startIndex..<state.characters.index(state.startIndex, offsetBy: 8)]		// only use the first 8 chars, should be enough
 		}
 		
 		
 		// compose the URL
-		let comp = NSURLComponents(URL: base, resolvingAgainstBaseURL: true)
+		var comp = URLComponents(url: base, resolvingAgainstBaseURL: true)
 		assert(nil != comp && "https" == comp!.scheme, "You MUST use HTTPS")
 		
 		var urlParams = params ?? [String: String]()
@@ -215,9 +215,9 @@ public class OAuth2
 		
 		comp!.query = OAuth2.queryStringFor(urlParams)
 		
-		let final = comp!.URL
+		let final = comp!.url
 		if nil == final {
-			NSException(name: "OAuth2InvalidURL", reason: "Failed to create authorize URL", userInfo: urlParams).raise()
+			NSException(name: NSExceptionName(rawValue: "OAuth2InvalidURL"), reason: "Failed to create authorize URL", userInfo: urlParams).raise()
 		}
 		
 		logIfVerbose("Authorizing against \(final!.description)")
@@ -229,7 +229,7 @@ public class OAuth2
 	
 		:returns: NSURL to be used to start the OAuth dance
 	 */
-	public func authorizeURL() -> NSURL {
+	open func authorizeURL() -> URL {
 		return authorizeURLWithRedirect(nil, scope: nil, params: nil)
 	}
 	
@@ -243,34 +243,33 @@ public class OAuth2
 		                  query part
 		:returns: NSURL to be used to start the OAuth dance
 	 */
-	public func authorizeURLWithRedirect(redirect: String?, scope: String?, params: [String: String]?) -> NSURL {
-		NSException(name: "OAuth2AbstractClassUse", reason: "Abstract class use", userInfo: nil).raise()
-		return NSURL()
+	open func authorizeURLWithRedirect(_ redirect: String?, scope: String?, params: [String: String]?) -> URL {
+        fatalError("authorizeURLWithRedirect has not been implemented")
 	}
 	
-	public func handleRedirectURL(redirect: NSURL) {
-		NSException(name: "OAuth2AbstractClassUse", reason: "Abstract class use", userInfo: nil).raise()
+	open func handleRedirectURL(_ redirect: URL) {
+        fatalError("handleRedirectURL has not been implemented")
 	}
 	
-	func didAuthorize(parameters: OAuth2JSON) {
+	func didAuthorize(_ parameters: OAuth2JSON) {
 		callOnMainThread() {
-			self.onAuthorize?(parameters: parameters)
-			self.afterAuthorizeOrFailure?(wasFailure: false, error: nil)
+			self.onAuthorize?(parameters)
+			self.afterAuthorizeOrFailure?(false, nil)
 		}
 	}
 	
-	func didFail(error: NSError?) {
+	func didFail(_ error: NSError?) {
 		callOnMainThread() {
-			self.onFailure?(error: error)
-			self.afterAuthorizeOrFailure?(wasFailure: true, error: error)
+			self.onFailure?(error)
+			self.afterAuthorizeOrFailure?(true, error)
 		}
 	}
 	
 	
 	// MARK: - Requests
 	
-	public func request(forURL url: NSURL) -> OAuth2Request {
-		return OAuth2Request(URL: url, oauth: self, cachePolicy: .ReturnCacheDataElseLoad, timeoutInterval: 20)
+	open func request(forURL url: URL) -> OAuth2Request {
+		return OAuth2Request(URL: url, oauth: self, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 20)
 	}
 	
 	
@@ -279,23 +278,23 @@ public class OAuth2
 	/**
 		Create a query string from a dictionary of string: string pairs.
 	 */
-	public class func queryStringFor(params: [String: String]) -> String {
+	open class func queryStringFor(_ params: [String: String]) -> String {
 		var arr: [String] = []
 		for (key, val) in params {
 			arr.append("\(key)=\(val)")						// NSURLComponents will correctly encode the parameter string
 		}
-		return arr.joinWithSeparator("&")
+		return arr.joined(separator: "&")
 	}
 	
 	/**
 		Parse a query string into a dictionary of String: String pairs.
 	 */
-	public class func paramsFromQuery(query: String) -> [String: String] {
+	open class func paramsFromQuery(_ query: String) -> [String: String] {
         
-		let parts = query.componentsSeparatedByString("&")
+		let parts = query.components(separatedBy: "&")
 		var params = [String: String](minimumCapacity: parts.count)
 		for part in parts {
-			let subparts = part.componentsSeparatedByString("=")
+			let subparts = part.components(separatedBy: "=")
 			if 2 == subparts.count {
 				params[subparts[0]] = subparts[1]
 			}
@@ -311,12 +310,12 @@ public class OAuth2
 		:returns: An NSError instance with the "best" localized error key and all parameters in the userInfo dictionary;
 		          domain "OAuth2ErrorDomain", code 600
 	 */
-	class func errorForAccessTokenErrorResponse(params: OAuth2JSON) -> NSError {
+	class func errorForAccessTokenErrorResponse(_ params: OAuth2JSON) -> NSError {
 		var message = ""
 		
 		// "error_description" is optional, we prefer it if it's present
 		if let err_msg = params["error_description"] as? String {
-			message = err_msg.stringByReplacingOccurrencesOfString("+", withString: " ")
+			message = err_msg.replacingOccurrences(of: "+", with: " ")
 		}
 		
 		// the "error" response is required for error responses
@@ -349,14 +348,14 @@ public class OAuth2
 		}
 		
 		var prms = params
-		prms[NSLocalizedDescriptionKey] = message
-		return NSError(domain: OAuth2ErrorDomain, code: OAuth2Error.AuthorizationError.rawValue, userInfo: prms)
+		prms[NSLocalizedDescriptionKey] = message as AnyObject?
+		return NSError(domain: OAuth2ErrorDomain, code: OAuth2Error.authorizationError.rawValue, userInfo: prms)
 	}
 	
 	/**
 		Debug logging, will only log if `verbose` is YES.
 	 */
-	func logIfVerbose(log: String) {
+	func logIfVerbose(_ log: String) {
 		if verbose {
 			print("OAuth2: \(log)")
 		}
@@ -365,22 +364,22 @@ public class OAuth2
 
 
 
-func callOnMainThread(callback: (Void -> Void)) {
-	if NSThread.isMainThread() {
+func callOnMainThread(_ callback: ((Void) -> Void)) {
+	if Thread.isMainThread {
 		callback()
 	}
 	else {
-		dispatch_sync(dispatch_get_main_queue(), {
+		DispatchQueue.main.sync(execute: {
 			callback()
 		})
 	}
 }
 
-public func genOAuth2Error(message: String) -> NSError {
-    return genOAuth2Error(message, code: .Generic)
+public func genOAuth2Error(_ message: String) -> NSError {
+    return genOAuth2Error(message, code: .generic)
 }
 
-public func genOAuth2Error(message: String, code: OAuth2Error) -> NSError {
+public func genOAuth2Error(_ message: String, code: OAuth2Error) -> NSError {
 	return NSError(domain: OAuth2ErrorDomain, code: code.rawValue, userInfo: [NSLocalizedDescriptionKey: message])
 }
 
