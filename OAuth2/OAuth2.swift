@@ -31,7 +31,7 @@ public enum OAuth2Error: Int {
 	case authorizationError
 }
 
-public typealias OAuth2JSON = [String: AnyObject]
+public typealias OAuth2JSON = [String: Any]
 
 
 /**

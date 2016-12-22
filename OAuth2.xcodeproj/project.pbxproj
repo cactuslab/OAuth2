@@ -74,6 +74,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4AA0D3091E0B5A9000A9D061 /* OAuth2.podspec */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = OAuth2.podspec; sourceTree = SOURCE_ROOT; };
 		EE12A3A31975B335001B8C28 /* OAuth2WebViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OAuth2WebViewController.swift; sourceTree = "<group>"; };
 		EE29EABB195A0DB2008882C8 /* OAuth2Request.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OAuth2Request.swift; sourceTree = "<group>"; };
 		EE29EABE195B0813008882C8 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -160,6 +161,7 @@
 		EEDB8627193FAAE500C4EEA1 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				4AA0D3091E0B5A9000A9D061 /* OAuth2.podspec */,
 				EEE2098B1942778300736F1A /* Info.plist */,
 			);
 			name = "Supporting Files";
