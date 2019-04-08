@@ -29,7 +29,7 @@ import Foundation
 open class OAuth2CodeGrant: OAuth2
 {
 	/** The URL string where we can exchange a code for a token; if nil `authURL` will be used. */
-    open let tokenURL: URL?
+    public let tokenURL: URL?
 	
 	/** The receiver's long-time refresh token. */
 	open var refreshToken = ""
@@ -128,7 +128,7 @@ open class OAuth2CodeGrant: OAuth2
         }
         
         let post = refreshTokenRequest()
-        logIfVerbose("Exchanging code \(refreshToken) with redirect \(redirect!) for token at \(post.url?.description)")
+        logIfVerbose("Exchanging code \(refreshToken) with redirect \(redirect!) for token at \(post.url?.description ?? "nil")")
         
         // perform the exchange
         let session = URLSession.shared
@@ -153,7 +153,7 @@ open class OAuth2CodeGrant: OAuth2
             
             // if we're still here an error must have happened
             if nil == finalError {
-                finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", code: .networkError)
+                finalError = genOAuth2Error("Unknown connection error for response \(String(describing: sessResponse)) with data \(String(describing: sessData))", code: .networkError)
             }
             
             self.didFail(finalError)
@@ -191,7 +191,7 @@ open class OAuth2CodeGrant: OAuth2
 		}
 		
 		let post = tokenRequest(code)
-		logIfVerbose("Exchanging code \(code) with redirect \(redirect!) for token at \(post.url?.description)")
+        logIfVerbose("Exchanging code \(code) with redirect \(redirect!) for token at \(String(describing: post.url?.description))")
 		
 		// perform the exchange
 		let session = URLSession.shared
@@ -216,7 +216,7 @@ open class OAuth2CodeGrant: OAuth2
 			
 			// if we're still here an error must have happened
 			if nil == finalError {
-				finalError = genOAuth2Error("Unknown connection error for response \(sessResponse) with data \(sessData)", code: .networkError)
+                finalError = genOAuth2Error("Unknown connection error for response \(String(describing: sessResponse)) with data \(String(describing: sessData))", code: .networkError)
 			}
 			
 			self.didFail(finalError)
@@ -262,7 +262,7 @@ open class OAuth2CodeGrant: OAuth2
 		var error: NSError?
 		
 		let comp = URLComponents(url: redirect, resolvingAgainstBaseURL: true)
-		if let compQuery = comp?.query, compQuery.characters.count > 0 {
+		if let compQuery = comp?.query, compQuery.count > 0 {
 			let query = OAuth2CodeGrant.paramsFromQuery(comp!.query!)
 			if let cd = query["code"] {
 				

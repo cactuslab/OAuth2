@@ -43,10 +43,10 @@ open class OAuth2
 	let settings: OAuth2JSON
 	
 	/** The client id. */
-	open let clientId: String
+    public let clientId: String
 	
 	/** The client secret, usually only needed for code grant. */
-	open let clientSecret: String?
+    public let clientSecret: String?
 	
 	/** The URL to authorize against. */
 	open var authURL: URL?
@@ -190,7 +190,7 @@ open class OAuth2
 		
 		if state.isEmpty {
 			state = UUID().uuidString
-			state = state[state.startIndex..<state.characters.index(state.startIndex, offsetBy: 8)]		// only use the first 8 chars, should be enough
+			state = String(state[state.startIndex..<state.index(state.startIndex, offsetBy: 8)])		// only use the first 8 chars, should be enough
 		}
 		
 		
@@ -364,7 +364,7 @@ open class OAuth2
 
 
 
-func callOnMainThread(_ callback: ((Void) -> Void)) {
+func callOnMainThread(_ callback: (() -> Void)) {
 	if Thread.isMainThread {
 		callback()
 	}

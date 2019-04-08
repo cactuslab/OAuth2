@@ -126,7 +126,7 @@ class OAuth2WebViewDelegate: NSObject, UIWebViewDelegate {
                     interceptComponents = URLComponents(url: url, resolvingAgainstBaseURL: true)
                 }
                 else {
-                    print("Failed to parse URL \(interceptURLString), discarding")
+                    print("Failed to parse URL \(String(describing: interceptURLString)), discarding")
                     interceptURLString = nil
                 }
             }
@@ -145,7 +145,7 @@ class OAuth2WebViewDelegate: NSObject, UIWebViewDelegate {
     
     // MARK: - Web View Delegate
     
-    func webView(_ webView: UIWebView, shouldStartLoadWith request: URLRequest, navigationType: UIWebViewNavigationType) -> Bool {
+    func webView(_ webView: UIWebView, shouldStartLoadWith request: URLRequest, navigationType: UIWebView.NavigationType) -> Bool {
         
         // we compare the scheme and host first, then check the path (if there is any). Not sure if a simple string comparison
         // would work as there may be URL parameters attached
@@ -215,7 +215,7 @@ open class OAuth2WebViewController: UIViewController
         // create a web view
         webView = UIWebView()
 //        webView.setTranslatesAutoresizingMaskIntoConstraints(false)
-        webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal
+        webView.scrollView.decelerationRate = UIScrollView.DecelerationRate.normal
         webView.delegate = delegate
         
         view.addSubview(webView!)
@@ -260,7 +260,7 @@ open class OAuth2WebViewController: UIViewController
         webView.goBack()
     }
     
-    func cancel(_ sender: AnyObject?) {
+    @objc func cancel(_ sender: AnyObject?) {
         dismiss(true, animated: nil != sender ? true : false)
     }
     

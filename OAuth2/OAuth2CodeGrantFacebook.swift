@@ -28,11 +28,11 @@ import Foundation
 open class OAuth2CodeGrantFacebook: OAuth2CodeGrant
 {
 	override func parseTokenExchangeResponse(_ data: Data, error: NSErrorPointer) -> OAuth2JSON? {
-		if let str = NSString(data: data, encoding: String.Encoding.utf8.rawValue) as? String {
-			let query = type(of: self).paramsFromQuery(str)
+        if let str = NSString(data: data, encoding: String.Encoding.utf8.rawValue) {
+			let query = type(of: self).paramsFromQuery(str as String)
 			if let access = query["access_token"] {
 				accessToken = access
-				return ["access_token": accessToken as AnyObject]
+				return ["access_token": accessToken]
 			}
 		}
 		return nil

@@ -37,9 +37,9 @@ open class OAuth2ImplicitGrant: OAuth2
 		let comp = URLComponents(url: redirect, resolvingAgainstBaseURL: true)
 		
 		// token should be in the URL fragment
-		if let fragment = comp?.fragment, fragment.characters.count > 0 {
+		if let fragment = comp?.fragment, fragment.count > 0 {
 			let params = OAuth2ImplicitGrant.paramsFromQuery(fragment)
-			if let token = params["access_token"], token.characters.count > 0 {
+			if let token = params["access_token"], token.count > 0 {
 				if let tokType = params["token_type"] {
 					if "bearer" == tokType.lowercased() {
 						
