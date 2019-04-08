@@ -279,7 +279,7 @@
 				TargetAttributes = {
 					EEDB8623193FAAE500C4EEA1 = {
 						CreatedOnToolsVersion = 6.0;
-						LastSwiftMigration = 1010;
+						LastSwiftMigration = 1020;
 					};
 					EEE209461942772800736F1A = {
 						CreatedOnToolsVersion = 6.0;
@@ -294,10 +294,11 @@
 			};
 			buildConfigurationList = EEDB861E193FAAE500C4EEA1 /* Build configuration list for PBXProject "OAuth2" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = EEDB861A193FAAE500C4EEA1;
 			productRefGroup = EEDB8625193FAAE500C4EEA1 /* Products */;
@@ -523,7 +524,7 @@
 				PRODUCT_NAME = OAuth2;
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -543,7 +544,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "org.chip.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = OAuth2;
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
