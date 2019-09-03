@@ -19,7 +19,7 @@
 //
 
 import UIKit
-
+import WebKit
 
 extension OAuth2
 {
@@ -97,7 +97,7 @@ extension OAuth2
     }
     
     
-    public func webViewDelegateForAuthorization(_ params:[String: String]?) -> (UIWebViewDelegate, URL) {
+    public func webViewDelegateForAuthorization(_ params:[String: String]?) -> (WKNavigationDelegate, URL) {
         let url = authorizeURLWithRedirect(nil, scope: nil, params: params)
         
         let delegate = OAuth2WebViewDelegate()
@@ -116,7 +116,7 @@ extension OAuth2
     }
 }
 
-class OAuth2WebViewDelegate: NSObject, UIWebViewDelegate {
+class OAuth2WebViewDelegate: NSObject, WKNavigationDelegate {
     
     /** The URL string to intercept and respond to. */
     var interceptURLString: String? {
@@ -145,21 +145,25 @@ class OAuth2WebViewDelegate: NSObject, UIWebViewDelegate {
     
     // MARK: - Web View Delegate
     
-    func webView(_ webView: UIWebView, shouldStartLoadWith request: URLRequest, navigationType: UIWebView.NavigationType) -> Bool {
-        
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         // we compare the scheme and host first, then check the path (if there is any). Not sure if a simple string comparison
         // would work as there may be URL parameters attached
+        let request = navigationAction.request
         if nil != onIntercept && request.url?.scheme == interceptComponents?.scheme && request.url?.host == interceptComponents?.host {
             let haveComponents = URLComponents(url: request.url!, resolvingAgainstBaseURL: true)
             if haveComponents?.path == interceptComponents?.path {
-                return !onIntercept!(request.url!)
+                if !onIntercept!(request.url!) {
+                    decisionHandler(.allow)
+                } else {
+                    decisionHandler(.cancel)
+                }
+                return
             }
         }
-        
-        return true
+        decisionHandler(.allow)
     }
     
-    func webView(_ webView: UIWebView, didFailLoadWithError error: Error) {
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         let error = error as NSError
         if NSURLErrorDomain == error.domain && NSURLErrorCancelled == error.code {
             return
@@ -187,7 +191,7 @@ open class OAuth2WebViewController: UIViewController
     
     
     var cancelButton: UIBarButtonItem?
-    var webView: UIWebView!
+    var webView: WKWebView!
     var loadingView: UIView?
     
     init() {
@@ -213,10 +217,10 @@ open class OAuth2WebViewController: UIViewController
         navigationItem.rightBarButtonItem = cancelButton
         
         // create a web view
-        webView = UIWebView()
+        webView = WKWebView(frame: .zero)
 //        webView.setTranslatesAutoresizingMaskIntoConstraints(false)
         webView.scrollView.decelerationRate = UIScrollView.DecelerationRate.normal
-        webView.delegate = delegate
+        webView.navigationDelegate = delegate
         
         view.addSubview(webView!)
         let views:[String : AnyObject] = ["web": webView!]
@@ -253,7 +257,7 @@ open class OAuth2WebViewController: UIViewController
     // MARK: - Actions
     
     open func loadURL(_ url: URL) {
-        webView.loadRequest(URLRequest(url: url))
+        webView.load(URLRequest(url: url))
     }
     
     func goBack(_ sender: AnyObject?) {
