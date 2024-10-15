@@ -41,7 +41,7 @@ class OAuth2Tests: XCTestCase {
 		XCTAssertEqual(oauth.clientId, "def", "Must init `client_id`")
 		
 		let oa = self.genericOAuth2()
-		XCTAssertEqual(oa.authURL!, NSURL(string: "https://auth.ful.io")!, "Must init `authorize_uri`")
+		XCTAssertEqual(oa.authURL!, URL(string: "https://auth.ful.io")!, "Must init `authorize_uri`")
 		XCTAssertEqual(oa.scope!, "login", "Must init `scope`")
 		XCTAssertTrue(oa.verbose, "Must init `verbose`")
 	}
@@ -50,7 +50,7 @@ class OAuth2Tests: XCTestCase {
 		let oa = genericOAuth2()
 		let auth = oa.authorizeURL(oa.authURL!, redirect: "oauth2app://callback", scope: "launch", responseType: "code", params: nil)
 		
-		let comp = NSURLComponents(URL: auth, resolvingAgainstBaseURL: true)!
+        let comp = URLComponents(url: auth, resolvingAgainstBaseURL: true)!
 		XCTAssertEqual("https", comp.scheme!, "Need correct scheme")
 		XCTAssertEqual("auth.ful.io", comp.host!, "Need correct host")
 		
@@ -71,7 +71,7 @@ class OAuth2Tests: XCTestCase {
 	
 	func testQueryParamConversion() {
 		let qry = OAuth2.queryStringFor(["a": "AA", "b": "BB", "x": "yz"])
-		XCTAssertTrue(14 == qry.characters.count, "Expecting a 14 character string")
+		XCTAssertTrue(14 == qry.count, "Expecting a 14 character string")
 		
 		let dict = OAuth2.paramsFromQuery(qry)
 		XCTAssertEqual(dict["a"]!, "AA", "Must unpack `a`")

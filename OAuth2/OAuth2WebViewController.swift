@@ -19,7 +19,7 @@
 //
 
 import UIKit
-import WebKit
+@preconcurrency import WebKit
 
 extension OAuth2
 {

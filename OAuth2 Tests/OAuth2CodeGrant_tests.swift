@@ -39,8 +39,8 @@ class OAuth2CodeGrantTests: XCTestCase
 		XCTAssertTrue(oauth.verbose, "Set to verbose")
 		XCTAssertNil(oauth.scope, "Empty scope")
 		
-		XCTAssertEqual(oauth.authURL!, NSURL(string: "https://auth.ful.io")!, "Must init `authorize_uri`")
-		XCTAssertEqual(oauth.tokenURL!, NSURL(string: "https://token.ful.io")!, "Must init `token_uri`")
+		XCTAssertEqual(oauth.authURL!, URL(string: "https://auth.ful.io")!, "Must init `authorize_uri`")
+		XCTAssertEqual(oauth.tokenURL!, URL(string: "https://token.ful.io")!, "Must init `token_uri`")
 	}
 	
 	func testAuthorizeURI() {
@@ -52,14 +52,14 @@ class OAuth2CodeGrantTests: XCTestCase
 		])
 		
 		XCTAssertNotNil(oauth.authURL, "Must init `authorize_uri`")
-		let comp = NSURLComponents(URL: oauth.authorizeURLWithRedirect("oauth2://callback", scope: nil, params: nil), resolvingAgainstBaseURL: true)!
+		let comp = URLComponents(url: oauth.authorizeURLWithRedirect("oauth2://callback", scope: nil, params: nil), resolvingAgainstBaseURL: true)!
 		XCTAssertEqual(comp.host!, "auth.ful.io", "Correct host")
 		let query = OAuth2CodeGrant.paramsFromQuery(comp.query!)
 		XCTAssertEqual(query["client_id"]!, "abc", "Expecting correct `client_id`")
 		XCTAssertNil(query["client_secret"], "Must not have `client_secret`")
 		XCTAssertEqual(query["response_type"]!, "code", "Expecting correct `response_type`")
 		XCTAssertEqual(query["redirect_uri"]!, "oauth2://callback", "Expecting correct `redirect_uri`")
-		XCTAssertTrue(8 == query["state"]!.characters.count, "Expecting an auto-generated UUID for `state`")
+		XCTAssertTrue(8 == query["state"]!.count, "Expecting an auto-generated UUID for `state`")
 		
 		// TODO: test for non-https URLs (must raise)
 	}
@@ -73,7 +73,7 @@ class OAuth2CodeGrantTests: XCTestCase
 		])
 		
 		XCTAssertNotNil(oauth.tokenURL, "Must init `token_uri`")
-		let comp = NSURLComponents(URL: oauth.tokenURLWithRedirect("oauth2://callback", code: "pp", params: nil), resolvingAgainstBaseURL: true)!
+		let comp = URLComponents(url: oauth.tokenURLWithRedirect("oauth2://callback", code: "pp", params: nil), resolvingAgainstBaseURL: true)!
 		XCTAssertEqual(comp.host!, "token.ful.io", "Correct host")
 		
 		let query = OAuth2CodeGrant.paramsFromQuery(comp.query!)
@@ -82,7 +82,7 @@ class OAuth2CodeGrantTests: XCTestCase
 		XCTAssertEqual(query["code"]!, "pp", "Expecting correct `code`")
 		XCTAssertEqual(query["grant_type"]!, "authorization_code", "Expecting correct `grant_type`")
 		XCTAssertEqual(query["redirect_uri"]!, "oauth2://callback", "Expecting correct `redirect_uri`")
-		XCTAssertTrue(8 == query["state"]!.characters.count, "Expecting an auto-generated UUID for `state`")
+		XCTAssertTrue(8 == query["state"]!.count, "Expecting an auto-generated UUID for `state`")
 		
 		// test authURL fallback
 		oauth = OAuth2CodeGrant(settings: [
@@ -90,7 +90,7 @@ class OAuth2CodeGrantTests: XCTestCase
 			"client_secret": "xyz",
 			"authorize_uri": "https://auth.ful.io",
 		])
-		let comp2 = NSURLComponents(URL: oauth.tokenURLWithRedirect("oauth2://callback", code: "pp", params: nil), resolvingAgainstBaseURL: true)!
+		let comp2 = URLComponents(url: oauth.tokenURLWithRedirect("oauth2://callback", code: "pp", params: nil), resolvingAgainstBaseURL: true)!
 		XCTAssertEqual(comp2.host!, "auth.ful.io", "Correct host")
 		
 		// TODO: test for non-https URLs (must raise)
@@ -106,14 +106,14 @@ class OAuth2CodeGrantTests: XCTestCase
 		oauth.redirect = "oauth2://callback"
 		
 		let req = oauth.tokenRequest("pp")
-		let body = NSString(data: req.HTTPBody!, encoding: NSUTF8StringEncoding) as? String
+        let body = NSString(data: req.httpBody!, encoding: NSUTF8StringEncoding) as? String
 		let query = OAuth2CodeGrant.paramsFromQuery(body!)
 		XCTAssertEqual(query["client_id"]!, "abc", "Expecting correct `client_id`")
 		XCTAssertEqual(query["client_secret"]!, "xyz", "Expecting correct `client_secret`")
 		XCTAssertEqual(query["code"]!, "pp", "Expecting correct `code`")
 		XCTAssertEqual(query["grant_type"]!, "authorization_code", "Expecting correct `grant_type`")
 		XCTAssertEqual(query["redirect_uri"]!, "oauth2://callback", "Expecting correct `redirect_uri`")
-		XCTAssertTrue(8 == query["state"]!.characters.count, "Expecting an auto-generated UUID for `state`")
+		XCTAssertTrue(8 == query["state"]!.count, "Expecting an auto-generated UUID for `state`")
 	}
 
     /*func testPerformanceExample() {
